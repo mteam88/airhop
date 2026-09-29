@@ -1,0 +1,14 @@
+.env
+secrets.toml
+*.keystore
+.DS_Store
+# android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/.kotlin/
+# mac
+mac/.build/
+mac/dist/
