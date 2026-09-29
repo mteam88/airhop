@@ -105,6 +105,7 @@ class HopService : Service() {
         handler.post { startScan() }
         handler.postDelayed(::checkMedia, 3_000) // once Shizuku and the A2DP proxy are up
         handler.postDelayed({ updateNotification() }, SHIZUKU_GRACE_MS + 100)
+        handler.postDelayed(shizukuWatchdog, 10_000)
         log("started")
     }
 
@@ -153,20 +154,38 @@ class HopService : Service() {
 
     // --- Shizuku ---------------------------------------------------------------------------
 
-    private val onShizukuBinder = Shizuku.OnBinderReceivedListener {
+    private val onShizukuBinder = Shizuku.OnBinderReceivedListener { handler.post { bindPrivileged() } }
+
+    private var lastBindAttempt = 0L
+
+    /** Idempotent; also driven by [shizukuWatchdog] since Shizuku may come up (or get permission) after us. */
+    private fun bindPrivileged() {
+        if (priv != null || !Shizuku.pingBinder()) return
         if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            log("shizuku running but permission not granted")
-            return@OnBinderReceivedListener
+            return log("shizuku running but airhop isn't allowed; open airhop to grant it")
         }
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastBindAttempt < 20_000) return
+        lastBindAttempt = now
+        log("binding privileged service")
         val args = Shizuku.UserServiceArgs(ComponentName(packageName, PrivilegedService::class.java.name))
             .daemon(false)
             .processNameSuffix("priv")
             .version(packageManager.getPackageInfo(packageName, 0).longVersionCode.toInt())
-        Shizuku.bindUserService(args, privConnection)
+        runCatching { Shizuku.bindUserService(args, privConnection) }
+            .onFailure { log("shizuku bind failed: $it") }
+    }
+
+    private val shizukuWatchdog = object : Runnable {
+        override fun run() {
+            bindPrivileged()
+            handler.postDelayed(this, 10_000)
+        }
     }
 
     private val onShizukuDead = Shizuku.OnBinderDeadListener {
         priv = null
+        lastBindAttempt = 0L
         log("shizuku died; can't connect until it's restarted")
         updateNotification()
     }
@@ -184,7 +203,11 @@ class HopService : Service() {
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
-            priv = null
+            handler.post {
+                priv = null
+                log("privileged service disconnected")
+                updateNotification()
+            }
         }
     }
 
