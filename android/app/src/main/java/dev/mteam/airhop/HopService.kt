@@ -103,6 +103,7 @@ class HopService : Service() {
         Shizuku.addBinderReceivedListenerSticky(onShizukuBinder)
         Shizuku.addBinderDeadListener(onShizukuDead)
         handler.post { startScan() }
+        handler.postDelayed(::checkMedia, 3_000) // once Shizuku and the A2DP proxy are up
         handler.postDelayed({ updateNotification() }, SHIZUKU_GRACE_MS + 100)
         log("started")
     }
@@ -386,12 +387,19 @@ class HopService : Service() {
     }
 
     // Player configs include paused/idle players and apps can't see their state, so ask the mixer.
+    // The callback fires as a player starts, a beat before the mixer reports it active: re-check.
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<android.media.AudioPlaybackConfiguration>) {
-            val media = audio.isMusicActive
-            if (media && !mediaActive) onLocalIntent("media started", pauseMedia = true)
-            mediaActive = media
+            checkMedia()
+            handler.postDelayed(::checkMedia, 300)
+            handler.postDelayed(::checkMedia, 1_000)
         }
+    }
+
+    private fun checkMedia() {
+        val media = audio.isMusicActive
+        if (media && !mediaActive) onLocalIntent("media started", pauseMedia = true)
+        mediaActive = media
     }
 
     private val modeListener = AudioManager.OnModeChangedListener { mode ->
