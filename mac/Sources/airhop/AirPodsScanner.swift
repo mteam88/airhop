@@ -69,7 +69,7 @@ struct AirPodsAdvert: Equatable {
 
     init(config: Config) {
         self.config = config
-        knownHolders = Set([config.macSuffix, config.pixelSuffix] + config.extraSuffixes)
+        knownHolders = Set(([config.macSuffix, config.pixelSuffix] + config.extraSuffixes).filter { !$0.isEmpty })
         super.init()
         central = CBCentralManager(delegate: self, queue: .main)
     }

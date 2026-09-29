@@ -1,6 +1,7 @@
 import Foundation
 
-/// Settings from ~/.config/airhop/mac.toml (flat `key = value` subset of TOML); every key is optional.
+/// Settings from ~/.config/airhop/mac.toml (flat `key = value` subset of TOML).
+/// airpods_address, mac_suffix and pixel_suffix are per-setup and have no useful default.
 struct Config {
     var airpodsAddress = ""
     var airpodsModel: UInt16 = 0x2720

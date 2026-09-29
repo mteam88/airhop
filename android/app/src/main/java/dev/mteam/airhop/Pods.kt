@@ -8,7 +8,7 @@ data class PodState(
     val leftInEar: Boolean,
     val rightInEar: Boolean,
     val conn: Int,
-    /** Last three bytes of the BT address currently holding the AirPods, e.g. "". */
+    /** Last three bytes of the BT address currently holding the AirPods, e.g. "a1b2c3". */
     val holder: String,
     val leftBattery: Int?,
     val rightBattery: Int?,

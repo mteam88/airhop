@@ -52,7 +52,7 @@ struct Status: Codable {
         self.config = config
         self.dryRun = dryRun
         guard let device = IOBluetoothDevice(addressString: config.airpodsAddress) else {
-            fatalError("invalid airpods_address \(config.airpodsAddress)")
+            fatalError("invalid airpods_address '\(config.airpodsAddress)'; set it in \(Config.path.path)")
         }
         self.device = device
         scanner = AirPodsScanner(config: config)

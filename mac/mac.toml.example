@@ -1,8 +1,10 @@
-# airhop mac agent config (~/.config/airhop/mac.toml). All keys optional; these are the defaults.
-airpods_address = ""
+# airhop mac agent config (~/.config/airhop/mac.toml).
+# The first four keys are specific to your devices; the rest are defaults.
+# `airhop scan` prints the holder suffix the AirPods report while each device holds them.
+airpods_address = "AA:BB:CC:DD:EE:FF"   # the AirPods' BT address (System Settings > Bluetooth)
 airpods_model = "2720"            # hex, from proximity-pairing advert bytes 5..6
-mac_suffix = ""             # last 3 bytes of this Mac's BT address
-pixel_suffix = ""           # last 3 bytes of the phone's BT address
+mac_suffix = "a1b2c3"       # last 3 bytes of this Mac's BT address
+pixel_suffix = "d4e5f6"     # last 3 bytes of the phone's BT address
 extra_suffixes = ["000000"]       # other holder values that identify our AirPods (e.g. nobody)
 # mic users that should NOT count as a call (bundle-ID prefixes)
 ignore_input_bundles = ["com.apple.siri", "com.apple.assistantd", "com.apple.corespeechd", "com.apple.SpeechRecognitionCore", "com.apple.accessibility.heard", "com.apple.dictation", "com.apple.controlcenter", "com.electron.wispr-flow"]

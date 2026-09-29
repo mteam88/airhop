@@ -38,12 +38,9 @@ that each decide for themselves:
 
 ## Setup
 
-Mac:
-```
-brew install media-control
-just mac-signing-setup   # once: stable signature so the Bluetooth permission survives rebuilds
-just mac-install
-```
+Requires macOS 14+, Android 14+ (tested on a Pixel), AirPods that send Apple's proximity
+advertisement (tested with AirPods Pro 2, model `2720`), [just](https://github.com/casey/just),
+Xcode command line tools, and Android Studio (the justfile uses its bundled JDK).
 
 Pixel (USB debugging on):
 ```
@@ -55,4 +52,23 @@ After a phone reboot, Shizuku must be restarted: open Shizuku and tap Start
 (Wireless debugging), or run `just android-shizuku`. airhop posts a notification until
 you do.
 
+Mac:
+```
+brew install media-control
+just mac-signing-setup   # once: stable signature so the Bluetooth permission survives rebuilds
+just mac-install         # also copies mac.toml.example to ~/.config/airhop/mac.toml
+```
+Then fill in `~/.config/airhop/mac.toml`: the AirPods' Bluetooth address and the holder
+suffixes for the Mac and the phone (`just mac-scan` prints the `holder=` value while each
+device has the AirPods). For beacons, the Mac also needs the AirPods' advertisement key in
+`~/.config/airhop/secrets.toml` as `enc_key = "<hex>"`. The phone stores it as the part after
+the colon in `keys`, readable from the debug build with
+`adb shell run-as dev.mteam.airhop cat shared_prefs/airhop.xml`. Without it the Mac still
+works, just without the fast beacon path.
+
 Debugging: `just mac-status`, `just mac-logs`, `just android-status`.
+
+## Status
+
+Early and personal: built for and tested on one Mac, one Pixel and one pair of AirPods. There are no automated tests. The Mac and Android builds both
+compile from a clean checkout (`swift build`, `./gradlew assembleDebug`).
