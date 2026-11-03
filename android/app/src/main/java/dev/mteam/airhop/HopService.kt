@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.AdvertiseData
@@ -16,8 +17,11 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
@@ -102,6 +106,7 @@ class HopService : Service() {
         }
         Shizuku.addBinderReceivedListenerSticky(onShizukuBinder)
         Shizuku.addBinderDeadListener(onShizukuDead)
+        registerReceiver(bluetoothState, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED), null, handler, RECEIVER_NOT_EXPORTED)
         handler.post { startScan() }
         handler.postDelayed(::checkMedia, 3_000) // once Shizuku and the A2DP proxy are up
         handler.postDelayed({ updateNotification() }, SHIZUKU_GRACE_MS + 100)
@@ -121,6 +126,7 @@ class HopService : Service() {
         audio.unregisterAudioPlaybackCallback(playbackCallback)
         audio.removeOnModeChangedListener(modeListener)
         runCatching { getSystemService(TelephonyManager::class.java).unregisterTelephonyCallback(callCallback) }
+        unregisterReceiver(bluetoothState)
         if (scanning) adapter.bluetoothLeScanner?.stopScan(scanCallback)
         thread.quitSafely()
         super.onDestroy()
@@ -235,8 +241,21 @@ class HopService : Service() {
 
     // --- BLE -------------------------------------------------------------------------------
 
+    /** Turning Bluetooth off drops every app's LE scan without telling us; re-register when it's back. */
+    private val bluetoothState = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1)) {
+                BluetoothAdapter.STATE_TURNING_OFF, BluetoothAdapter.STATE_OFF -> if (scanning) {
+                    scanning = false
+                    log("bluetooth off; scan dropped")
+                }
+                BluetoothAdapter.STATE_ON -> startScan()
+            }
+        }
+    }
+
     private fun startScan() {
-        if (scanning || keys == null) return
+        if (scanning || keys == null || !adapter.isEnabled) return
         val scanner = adapter.bluetoothLeScanner ?: return
         val keys = keys!!
         val pods = ScanFilter.Builder()
